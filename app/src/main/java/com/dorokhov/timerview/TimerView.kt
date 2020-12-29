@@ -11,7 +11,6 @@ import io.reactivex.disposables.CompositeDisposable
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.TimeUnit
-import kotlin.collections.ArrayList
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
@@ -43,27 +42,29 @@ class TimerView @JvmOverloads constructor(
     var fullTime: Long = 12000
     var currentTime: Long = 0
 
-    val points = ArrayList<PointF>()
+/*    val points = ArrayList<PointF>()
     val controlPoint1 = ArrayList<PointF>()
-    val controlPoint2 = ArrayList<PointF>()
+    val controlPoint2 = ArrayList<PointF>()*/
 
-    var paintWave: Paint = Paint(ANTI_ALIAS_FLAG).apply {
-        isAntiAlias = true
-        strokeWidth = 2f
-        color = Color.parseColor(STANDARD_COLOR_STRING)
-        style = Paint.Style.STROKE
-        xfermode = (PorterDuffXfermode(PorterDuff.Mode.MULTIPLY))
-    }
+    /*   var paintWave: Paint = Paint(ANTI_ALIAS_FLAG).apply {
+           isAntiAlias = true
+           strokeWidth = 2f
+           color = Color.parseColor(STANDARD_COLOR_STRING)
+           style = Paint.Style.STROKE
+           xfermode = (PorterDuffXfermode(PorterDuff.Mode.MULTIPLY))
+       }*/
 
     private val circleTimerPaint = Paint(ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor(STANDARD_COLOR_STRING)
         style = Paint.Style.STROKE
     }
 
+/*
     private val circleMaskPaint = Paint().apply {
         style = Paint.Style.FILL
         color = Color.parseColor(STANDARD_COLOR_MASK)
     }
+*/
 
     private val indicatorTimePaint = Paint(ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor(STANDARD_COLOR_STRING)
@@ -112,7 +113,7 @@ class TimerView @JvmOverloads constructor(
             drawLinesIndicators(this)
             drawTime(this)
             drawCompletedZone(this)
-            drawTheFirstWave(this)
+            // drawTheFirstWave(this)
             // calculateZoneForDrawing(this)
         }
     }
@@ -231,7 +232,7 @@ class TimerView @JvmOverloads constructor(
           textPaint.alpha = 255 - (255 - currentTime.toInt() % 1000 - 745)
           canvas.drawText("1", width / 2f, height / 2f, textPaint)
       }*/
-
+/*
     private fun calculatePoints() {
         // задает текущую высоту относительно времени, получается, что линия поднимется, в зависимости
         // от времени
@@ -246,7 +247,7 @@ class TimerView @JvmOverloads constructor(
         someData.add(0)
         var xDiff = (width.toFloat() / (someData.size - 1))
         val maxData = someData.max()!!
-        points.clear()
+        points.clear() 
         for (i in someData.indices) {
             val y = currentHeight + bottomY - (someData[i] / maxData * bottomY)
             points.add(PointF(xDiff * i + xStorm, y))
@@ -303,7 +304,7 @@ class TimerView @JvmOverloads constructor(
         }
         canvas.drawCircle(cx, cy, radius, circleMaskPaint)
 
-    }
+    }*/
 
     override fun onDetachedFromWindow() {
         timerDisposable.clear()
