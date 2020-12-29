@@ -1,4 +1,4 @@
-package com.dorokhov.timerview
+package com.dorokhov.ydtimerview.listeners
 
 interface TimerListener {
     fun onTimerComplete()

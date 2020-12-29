@@ -1,4 +1,4 @@
-package com.dorokhov.timerview
+package com.dorokhov.ydtimerview.core
 
 interface ITimerView {
     /** Sets the time in milliseconds

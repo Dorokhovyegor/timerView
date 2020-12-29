@@ -1,10 +1,12 @@
-package com.dorokhov.timerview
+package com.dorokhov.ydtimerview.core
 
 import android.content.Context
 import android.graphics.*
 import android.graphics.Paint.ANTI_ALIAS_FLAG
 import android.util.AttributeSet
 import android.view.View
+import com.dorokhov.ydtimerview.R
+import com.dorokhov.ydtimerview.listeners.TimerListener
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
@@ -247,7 +249,7 @@ class TimerView @JvmOverloads constructor(
         someData.add(0)
         var xDiff = (width.toFloat() / (someData.size - 1))
         val maxData = someData.max()!!
-        points.clear() 
+        points.clear()
         for (i in someData.indices) {
             val y = currentHeight + bottomY - (someData[i] / maxData * bottomY)
             points.add(PointF(xDiff * i + xStorm, y))
