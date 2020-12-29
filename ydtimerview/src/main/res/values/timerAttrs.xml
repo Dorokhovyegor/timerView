@@ -1,8 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <declare-styleable name="TimerView">
-        <attr name="completedZoneColor" format="color"/>
+        <!--цвет индикации-->
+        <attr name="indicationZoneColor" format="color"/>
+        <!--Цвет циферблата-->
         <attr name="timerMainColor" format="color"/>
+        <!--Цвет индикатора-->
         <attr name="indicatorColor" format="color"/>
+        <attr name="textColor" format="color"/>
+        <!--Толщина заполненной зоны-->
+        <attr name="widthCompletedZone" format="dimension"/>
+        <attr name="radiusIndicator" format="dimension"/>
+        <!--Определяет рисовать ли линии циферблата-->
+        <attr name="drawSeparatorLines" format="boolean"/>
+        <!--Если установлено true, то индикация будет заполняться от индикатора до конца циферблата-->
+        <!--Иначе индикация таймера идет от начала до индикатора текущего времени-->
+        <attr name="reverseCompletedZone" format="boolean"/>
+        <attr name="showTime" format="boolean"/>
     </declare-styleable>
 </resources>

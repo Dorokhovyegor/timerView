@@ -1,10 +1,15 @@
 package com.dorokhov.ydtimerview.core
 
+import android.annotation.SuppressLint
 import android.content.Context
-import android.graphics.*
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.Paint.ANTI_ALIAS_FLAG
+import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
+import androidx.annotation.ColorRes
 import com.dorokhov.ydtimerview.R
 import com.dorokhov.ydtimerview.listeners.TimerListener
 import io.reactivex.Observable
@@ -19,9 +24,11 @@ import kotlin.math.sin
 
 const val STANDARD_WIDTH = 50
 const val STANDARD_INDICATOR_RADIUS = 4
+const val STANDARD_INDICATION_STROKE = 5f
 const val STANDARD_COLOR_STRING = "#000000"
 const val STANDARD_COLOR_MASK = "#778331"
 
+@SuppressLint("ResourceAsColor")
 class TimerView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
@@ -34,9 +41,16 @@ class TimerView @JvmOverloads constructor(
     private val scaleDp = resources.displayMetrics.density
     private val scaleSp = resources.displayMetrics.scaledDensity
     var widthTimer = STANDARD_WIDTH * scaleDp
-    var indicatorCircleRadius = STANDARD_INDICATOR_RADIUS * scaleDp
 
-    lateinit var path: Path
+
+    var indicatorCircleRadius = STANDARD_INDICATOR_RADIUS * scaleDp
+    var indicationStrokeWidth: Float = STANDARD_INDICATION_STROKE * scaleDp
+    var indicationColor: Int? = R.color.black
+    var indicatorColor: Int? = R.color.black
+    var textColor: Int? = R.color.black
+    var reverseIndication: Boolean = false
+    var drawSeparatorsLines: Boolean = false
+    var showTime: Boolean = false
 
     var centerX: Float? = 0f
     var centerY: Float? = 0f
@@ -44,9 +58,9 @@ class TimerView @JvmOverloads constructor(
     var fullTime: Long = 12000
     var currentTime: Long = 0
 
-/*    val points = ArrayList<PointF>()
-    val controlPoint1 = ArrayList<PointF>()
-    val controlPoint2 = ArrayList<PointF>()*/
+    /*    val points = ArrayList<PointF>()
+        val controlPoint1 = ArrayList<PointF>()
+        val controlPoint2 = ArrayList<PointF>()*/
 
     /*   var paintWave: Paint = Paint(ANTI_ALIAS_FLAG).apply {
            isAntiAlias = true
@@ -61,34 +75,55 @@ class TimerView @JvmOverloads constructor(
         style = Paint.Style.STROKE
     }
 
-/*
+    /*
     private val circleMaskPaint = Paint().apply {
         style = Paint.Style.FILL
         color = Color.parseColor(STANDARD_COLOR_MASK)
     }
 */
 
+    /*отвечает за кружочек которые бежит до конца*/
     private val indicatorTimePaint = Paint(ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor(STANDARD_COLOR_STRING)
         style = Paint.Style.FILL
     }
 
+    /*отвечает за заполнение циферблаата*/
     private val completedZonePaint = Paint(ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor(STANDARD_COLOR_STRING)
         style = Paint.Style.STROKE
         strokeWidth = 2 * scaleDp
     }
 
     private val textPaint = Paint(ANTI_ALIAS_FLAG).apply {
-        color = Color.parseColor(STANDARD_COLOR_STRING)
         style = Paint.Style.FILL
         textSize = 22 * scaleSp
     }
 
     init {
-        val color = attrs?.getAttributeValue(R.styleable.TimerView_indicatorColor)
-        // get attrs value here
-        //setLayerType(LAYER_TYPE_HARDWARE, circleMaskPaint)
+        context.theme.obtainStyledAttributes(
+            attrs,
+            R.styleable.TimerView,
+            0, 0
+        ).apply {
+            try {
+                indicatorCircleRadius = getDimension(R.styleable.TimerView_radiusIndicator, STANDARD_INDICATOR_RADIUS * scaleDp)
+                indicatorColor = getColor(R.styleable.TimerView_indicatorColor, R.color.black)
+                textColor = getColor(R.styleable.TimerView_textColor, R.color.black)
+                indicationColor = attrs?.getIdAttributeResourceValue(R.styleable.TimerView_indicationZoneColor)
+                reverseIndication = getBoolean(R.styleable.TimerView_reverseCompletedZone, false)
+                drawSeparatorsLines = getBoolean(R.styleable.TimerView_drawSeparatorLines, false)
+                indicationStrokeWidth = getDimension(R.styleable.TimerView_widthCompletedZone, STANDARD_INDICATION_STROKE)
+                showTime = getBoolean(R.styleable.TimerView_showTime, false)
+                setPaintColorFromAttributes()
+            } finally {
+                recycle()
+            }
+        }
+    }
+
+    private fun setPaintColorFromAttributes() {
+        indicatorTimePaint.setColor(indicatorColor, context)
+        completedZonePaint.setColor(indicationColor, context)
+        textPaint.setColor(textColor, context)
     }
 
     fun setTimerListener(listener: TimerListener) {
@@ -112,8 +147,10 @@ class TimerView @JvmOverloads constructor(
         canvas?.apply {
             drawCircleTimer(this)
             drawTimeIndicator(this, currentTime, fullTime)
-            drawLinesIndicators(this)
-            drawTime(this)
+            if (drawSeparatorsLines)
+                drawLinesIndicators(this)
+            if (showTime)
+                drawTime(this)
             drawCompletedZone(this)
             // drawTheFirstWave(this)
             // calculateZoneForDrawing(this)
@@ -222,7 +259,12 @@ class TimerView @JvmOverloads constructor(
         }
         val sweepAngle = (currentTime.toFloat() / fullTime.toFloat()) * 360f
         canvas.drawArc(
-            RectF(width / 2 - radius, height / 2 - radius, width / 2 + radius, height / 2 + radius),
+            RectF(
+                width / 2 - radius,
+                height / 2 - radius,
+                width / 2 + radius,
+                height / 2 + radius
+            ),
             -90f,
             sweepAngle,
             false,
@@ -311,5 +353,13 @@ class TimerView @JvmOverloads constructor(
     override fun onDetachedFromWindow() {
         timerDisposable.clear()
         super.onDetachedFromWindow()
+    }
+}
+
+fun Paint.setColor(@ColorRes res: Int?, context: Context) {
+    if (res != null) {
+        this.color = context.getColor(res)
+    } else {
+        this.color = context.getColor(R.color.black)
     }
 }
