@@ -1,20 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#BE9B78"
     android:orientation="vertical">
 
     <com.dorokhov.ydtimerview.core.TimerView
+        android:id="@+id/timer"
         android:layout_width="200dp"
         android:layout_height="200dp"
+        android:layout_centerInParent="true"
         android:layout_marginStart="24dp"
         android:layout_marginTop="24dp"
-        app:drawSeparatorLines="true"
-        app:indicatorColor="@color/black"
-        app:radiusIndicator="10dp"
+        app:drawMainCircle="false"
+        app:drawSeparatorLines="false"
+        app:indicationZoneColor="@color/indicationColor"
+        app:indicatorColor="@color/indicatorColor"
+        app:radiusIndicator="4dp"
         app:reverseCompletedZone="true"
-        app:textColor="@color/white"
-        app:widthCompletedZone="5dp" />
+        app:textColor="#FFFDE0"
+        app:widthCompletedZone="1dp" />
 
-</LinearLayout>
+</RelativeLayout>

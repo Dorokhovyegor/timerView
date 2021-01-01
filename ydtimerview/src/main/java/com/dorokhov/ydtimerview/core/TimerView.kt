@@ -9,7 +9,7 @@ import android.graphics.Paint.ANTI_ALIAS_FLAG
 import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.View
-import androidx.annotation.ColorRes
+import androidx.core.content.res.getColorOrThrow
 import com.dorokhov.ydtimerview.R
 import com.dorokhov.ydtimerview.listeners.TimerListener
 import io.reactivex.Observable
@@ -45,17 +45,18 @@ class TimerView @JvmOverloads constructor(
 
     var indicatorCircleRadius = STANDARD_INDICATOR_RADIUS * scaleDp
     var indicationStrokeWidth: Float = STANDARD_INDICATION_STROKE * scaleDp
-    var indicationColor: Int? = R.color.black
-    var indicatorColor: Int? = R.color.black
-    var textColor: Int? = R.color.black
+    var indicationColor: Int? = null
+    var indicatorColor: Int? = null
+    var textColor: Int? = null
     var reverseIndication: Boolean = false
     var drawSeparatorsLines: Boolean = false
+    var drawMainCircle: Boolean = true
     var showTime: Boolean = false
 
     var centerX: Float? = 0f
     var centerY: Float? = 0f
 
-    var fullTime: Long = 12000
+    var fullTime: Long = 120000
     var currentTime: Long = 0
 
     /*    val points = ArrayList<PointF>()
@@ -68,7 +69,7 @@ class TimerView @JvmOverloads constructor(
            color = Color.parseColor(STANDARD_COLOR_STRING)
            style = Paint.Style.STROKE
            xfermode = (PorterDuffXfermode(PorterDuff.Mode.MULTIPLY))
-       }*/
+    }*/
 
     private val circleTimerPaint = Paint(ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor(STANDARD_COLOR_STRING)
@@ -80,17 +81,19 @@ class TimerView @JvmOverloads constructor(
         style = Paint.Style.FILL
         color = Color.parseColor(STANDARD_COLOR_MASK)
     }
-*/
+    */
 
     /*отвечает за кружочек которые бежит до конца*/
     private val indicatorTimePaint = Paint(ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.FILL
+        color = Color.BLACK
     }
 
     /*отвечает за заполнение циферблаата*/
     private val completedZonePaint = Paint(ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
-        strokeWidth = 2 * scaleDp
+        color = Color.BLACK
+        strokeWidth = 3 * scaleDp
     }
 
     private val textPaint = Paint(ANTI_ALIAS_FLAG).apply {
@@ -105,15 +108,24 @@ class TimerView @JvmOverloads constructor(
             0, 0
         ).apply {
             try {
-                indicatorCircleRadius = getDimension(R.styleable.TimerView_radiusIndicator, STANDARD_INDICATOR_RADIUS * scaleDp)
-                indicatorColor = getColor(R.styleable.TimerView_indicatorColor, R.color.black)
-                textColor = getColor(R.styleable.TimerView_textColor, R.color.black)
-                indicationColor = attrs?.getIdAttributeResourceValue(R.styleable.TimerView_indicationZoneColor)
+                indicatorCircleRadius = getDimension(
+                    R.styleable.TimerView_radiusIndicator,
+                    STANDARD_INDICATOR_RADIUS * scaleDp
+                )
+                drawMainCircle = getBoolean(R.styleable.TimerView_drawMainCircle, false)
+                indicatorColor = getColorOrThrow(R.styleable.TimerView_indicatorColor)
+                textColor = getColorOrThrow(R.styleable.TimerView_textColor)
+                indicationColor =
+                    getColorOrThrow(R.styleable.TimerView_indicationZoneColor)
                 reverseIndication = getBoolean(R.styleable.TimerView_reverseCompletedZone, false)
                 drawSeparatorsLines = getBoolean(R.styleable.TimerView_drawSeparatorLines, false)
-                indicationStrokeWidth = getDimension(R.styleable.TimerView_widthCompletedZone, STANDARD_INDICATION_STROKE)
+                indicationStrokeWidth = getDimension(
+                    R.styleable.TimerView_widthCompletedZone,
+                    STANDARD_INDICATION_STROKE
+                )
                 showTime = getBoolean(R.styleable.TimerView_showTime, false)
                 setPaintColorFromAttributes()
+                setPaintWidthFromAttributes()
             } finally {
                 recycle()
             }
@@ -121,9 +133,13 @@ class TimerView @JvmOverloads constructor(
     }
 
     private fun setPaintColorFromAttributes() {
-        indicatorTimePaint.setColor(indicatorColor, context)
-        completedZonePaint.setColor(indicationColor, context)
-        textPaint.setColor(textColor, context)
+        indicatorTimePaint.color = indicatorColor!!
+        completedZonePaint.color = indicationColor!!
+        textPaint.color = textColor!!
+    }
+
+    private fun setPaintWidthFromAttributes() {
+        indicatorTimePaint.strokeWidth = indicationStrokeWidth
     }
 
     fun setTimerListener(listener: TimerListener) {
@@ -145,13 +161,14 @@ class TimerView @JvmOverloads constructor(
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
         canvas?.apply {
-            drawCircleTimer(this)
-            drawTimeIndicator(this, currentTime, fullTime)
+            if (drawMainCircle)
+                drawCircleTimer(this)
+
             if (drawSeparatorsLines)
                 drawLinesIndicators(this)
-            if (showTime)
-                drawTime(this)
-            drawCompletedZone(this)
+            drawTime(this)
+            drawCompletedZone(this, reverseIndication)
+            drawTimeIndicator(this, currentTime, fullTime)
             // drawTheFirstWave(this)
             // calculateZoneForDrawing(this)
         }
@@ -251,13 +268,20 @@ class TimerView @JvmOverloads constructor(
         )
     }
 
-    private fun drawCompletedZone(canvas: Canvas) {
+    private fun drawCompletedZone(canvas: Canvas, reverseIndication: Boolean) {
         val radius = if (width < height) {
             ((width / 2) - (indicatorCircleRadius / 2))
         } else {
             ((height / 2) - (indicatorCircleRadius / 2))
         }
-        val sweepAngle = (currentTime.toFloat() / fullTime.toFloat()) * 360f
+
+        val reverse: Float = if (reverseIndication) -1f else 1f
+        val sweepAngle = if (reverseIndication) {
+            (360f - (currentTime.toFloat() / fullTime.toFloat()) * 360f)
+        } else {
+            (currentTime.toFloat() / fullTime.toFloat()) * 360f
+        }
+
         canvas.drawArc(
             RectF(
                 width / 2 - radius,
@@ -266,7 +290,7 @@ class TimerView @JvmOverloads constructor(
                 height / 2 + radius
             ),
             -90f,
-            sweepAngle,
+            sweepAngle * reverse,
             false,
             completedZonePaint
         )
@@ -276,7 +300,8 @@ class TimerView @JvmOverloads constructor(
           textPaint.alpha = 255 - (255 - currentTime.toInt() % 1000 - 745)
           canvas.drawText("1", width / 2f, height / 2f, textPaint)
       }*/
-/*
+    /*
+
     private fun calculatePoints() {
         // задает текущую высоту относительно времени, получается, что линия поднимется, в зависимости
         // от времени
@@ -347,7 +372,6 @@ class TimerView @JvmOverloads constructor(
             ((height / 2) - (indicatorCircleRadius / 2))
         }
         canvas.drawCircle(cx, cy, radius, circleMaskPaint)
-
     }*/
 
     override fun onDetachedFromWindow() {
@@ -356,10 +380,6 @@ class TimerView @JvmOverloads constructor(
     }
 }
 
-fun Paint.setColor(@ColorRes res: Int?, context: Context) {
-    if (res != null) {
-        this.color = context.getColor(res)
-    } else {
-        this.color = context.getColor(R.color.black)
-    }
+fun Paint.setColor(res: Int, context: Context) {
+    this.color = context.resources.getColor(res, null)
 }
