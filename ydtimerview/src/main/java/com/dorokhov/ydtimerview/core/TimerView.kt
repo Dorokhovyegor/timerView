@@ -11,6 +11,9 @@ import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.res.getColorOrThrow
 import com.dorokhov.ydtimerview.R
+import com.dorokhov.ydtimerview.converter.convertFromHtoMs
+import com.dorokhov.ydtimerview.converter.convertFromMtoMs
+import com.dorokhov.ydtimerview.converter.convertFromStoMs
 import com.dorokhov.ydtimerview.listeners.TimerListener
 import io.reactivex.Observable
 import io.reactivex.android.schedulers.AndroidSchedulers
@@ -42,7 +45,6 @@ class TimerView @JvmOverloads constructor(
     private val scaleSp = resources.displayMetrics.scaledDensity
     var widthTimer = STANDARD_WIDTH * scaleDp
 
-
     var indicatorCircleRadius = STANDARD_INDICATOR_RADIUS * scaleDp
     var indicationStrokeWidth: Float = STANDARD_INDICATION_STROKE * scaleDp
     var indicationColor: Int? = null
@@ -56,8 +58,24 @@ class TimerView @JvmOverloads constructor(
     var centerX: Float? = 0f
     var centerY: Float? = 0f
 
-    var fullTime: Long = 120000
-    var currentTime: Long = 0
+    /**
+     * time in ms
+     * */
+    private var fullTime: Long = 120000
+    private var currentTime: Long = 0
+        set(value) {
+            if (field >= fullTime) {
+                listener?.onTimerComplete()
+                field = 0
+                stopTimer(false)
+                invalidate()
+                return
+            }
+            field = value
+            invalidate()
+        }
+
+    private var isWorking: Boolean = false
 
     /*    val points = ArrayList<PointF>()
         val controlPoint1 = ArrayList<PointF>()
@@ -174,33 +192,74 @@ class TimerView @JvmOverloads constructor(
         }
     }
 
-    override fun setTime(ms: Long) {
-        if (ms >= fullTime) {
-            listener?.onTimerComplete()
-            stopTimer()
+    override fun setTime(time: Long, unit: TimeUnitTimer) {
+        val convertedTime = when (unit) {
+            TimeUnitTimer.MILLISECONDS -> time
+            TimeUnitTimer.SECONDS -> time.convertFromStoMs()
+            TimeUnitTimer.MINUTES -> time.convertFromMtoMs()
+            TimeUnitTimer.HOURS -> time.convertFromHtoMs()
         }
-        currentTime = ms
+        if (convertedTime >= fullTime) {
+            listener?.onTimerComplete()
+            stopTimer(true)
+        }
+        fullTime = convertedTime
         invalidate()
     }
 
-    override fun startTimer() {
-        timerDisposable.add(Observable.interval(0, 100, TimeUnit.MILLISECONDS)
-            .observeOn(AndroidSchedulers.mainThread())
-            .timeInterval()
-            .doOnDispose { setTime(0) }
-            .subscribe {
-                setTime(it.value() * 100)
-            })
+    override fun setTime(time: Long) {
+        if (time >= fullTime) {
+            listener?.onTimerComplete()
+            stopTimer(true)
+        }
+        fullTime = time
+        invalidate()
     }
 
-    override fun stopTimer() {
-        currentTime = 0
-        timerDisposable.dispose()
-        invalidate()
+    override fun startTimer(withReset: Boolean) {
+        if (!isWorking) {
+            if (withReset) {
+                resetTimer()
+            }
+            isWorking = true
+            timerDisposable.add(Observable.interval(0, 100, TimeUnit.MILLISECONDS)
+                .flatMap {
+                    Observable.create<Long> {
+                        it.onNext(1)
+                        it.onComplete()
+                    }
+                }
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe {
+                    currentTime += it * 100
+                }
+            )
+        }
+    }
+
+    override fun stopTimer(withReset: Boolean) {
+        if (isWorking) {
+            isWorking = false
+            if (withReset) {
+                resetTimer()
+            }
+            timerDisposable.clear()
+            invalidate()
+        }
     }
 
     override fun resetTimer() {
-        setTime(0)
+        currentTime = 0L
+    }
+
+    override fun setCurrentTime(time: Long, unit: TimeUnitTimer) {
+        val convertedTime = when (unit) {
+            TimeUnitTimer.MILLISECONDS -> time
+            TimeUnitTimer.SECONDS -> time.convertFromStoMs()
+            TimeUnitTimer.MINUTES -> time.convertFromMtoMs()
+            TimeUnitTimer.HOURS -> time.convertFromHtoMs()
+        }
+        currentTime = convertedTime
     }
 
     private fun drawTimeIndicator(canvas: Canvas, currentTime: Long, fullTime: Long) {
